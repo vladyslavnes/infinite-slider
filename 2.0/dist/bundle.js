@@ -69,10 +69,11 @@
 
 function Slider(slider) {
 
-	let indicators = slider.parentNode.querySelectorAll('.indicator');
-	Array.from(indicators).forEach((indicator, i) => {
-		indicator.onclick = scrollTo(+indicator.innerText * width);
-	});
+	// let indicators = slider.parentNode.querySelectorAll('.indicator')
+	// Array.from(indicators).forEach((indicator, i) => {
+	// 	indicator.onclick = scrollTo((+indicator.innerText)+1 * width)
+	// })
+
 
 	let images = slider.querySelectorAll('img');
 
@@ -83,6 +84,8 @@ function Slider(slider) {
 	let isSliding = false;
 	let startX = 0;
 	let diff = 0;
+
+	const scrollTo = () => {};
 
 	const scrollBySlide = direction => {
 		if (slider.scrollLeft === 0 && direction === -1) {
@@ -100,11 +103,9 @@ function Slider(slider) {
 
 	const swipeMove = e => {
 		if (isSliding) {
-			if (true) {}
-
 			let newX = e.clientX || e.touches[0].pageX;
 			diff = startX - newX;
-			slider.scrollBy({ left: 25 * Math.sign(diff), behavior: 'smooth' });
+			slider.scrollBy({ left: 50 * Math.sign(diff), behavior: 'smooth' });
 		}
 		e.preventDefault();
 	};
