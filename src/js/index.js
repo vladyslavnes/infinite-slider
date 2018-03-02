@@ -1,108 +1,151 @@
 class Slider {
-	constructor(width = 700, height = 300, slidesCount = 4, autoSlide = true) {
-		this.width = width
-		this.height = height
-		this.slidesCount = slidesCount
-		this.autoSlide = autoSlide
-		this.hash = `slider_${String(Math.random()).slice(2)}`
+	constructor(dest) {
+		this.slider = dest
+		this.height = this.slider.children[0].naturalHeight
+		this.width = this.slider.children[0].naturalWidth
+		this.slidesCount = this.slider.children.length
+		this.hash = 'slider_'+String(Math.random()).slice(2)
+		
+		dest.style.width = this.width
+		dest.style.height = this.height
+		
+		let div = document.createElement('div')
+		dest.appendChild(div)
+		
+		this.images = Array.from(dest.querySelectorAll('img'))
+		
+		this.images.forEach(img => {
+			div.appendChild(img)
+			img.style.width = this.width
+			img.style.height = this.height
+		})
+		
+
+		this.slider.innerHTML = this.render()
+		this.slider = this.slider.querySelector('.slider-container')
+		this.addEvents()
 	}
 
-	loadImages() {
-		var paths = []
-		for (let i = 0; i < this.slidesCount; i++) {
-			paths[i] = (`http://lorempixel.com/${this.width}/${this.height}/nature/${i+1}/`)
-		}
-		return paths
-	}
-
-	scrollBy(amount) {
-		let slider = document.getElementById(this.hash)
-		slider.scrollBy({top: 0, left: amount, behavior: 'smooth'})
-	}
-
-	scrollSlide(direction) {
-		let slider = document.getElementById(this.hash)
-		if (direction === 'left') {
-			this.scrollBy(this.width)
-			let first = slider.children[0]
-			slider.children[0].remove()
-			slider.append(first)
+	scrollTo(amount, instantly = false) {
+		if (instantly) {
+			this.slider.scrollTo({top: 0, left: amount})
 		} else {
-			this.scrollBy(-this.width)
-			let last = slider.children[slider.children.length-1]
-			slider.children[slider.children.length-1].remove()
-			slider.prepend(last)
+			this.slider.scrollTo({top: 0, left: amount, behavior:'smooth'})
 		}
 	}
-
-	autoScroll() {
-		if (this.autoSlide) {
-			this.scrollTimer = setInterval(e => {this.scrollSlide('left')}, 5000)
-		}
-	}
-
 
 	swipeStart(e) {
-		this.swiping = true
+		this.sliding = true
 		this.startX = e.pageX
-		clearInterval(this.scrollTimer)
+		this.diff = 0
+		e.preventDefault()
 	}
 
 	swipeMove(e) {
-		let slider = document.getElementById(this.hash)
-		let diff = e.touches ? e.touches[0].pageX - this.startX : e.pageX - this.startX
-		if (this.swiping) {
-			if (diff > 0) {
-				slider.scrollLeft -= this.width/100
-			} else {
-				slider.scrollLeft += this.width/100
-			}
+		this.diff = e.touches ? e.touches[0].pageX - this.startX : e.pageX - this.startX
+		if (this.sliding) {
+			this.slider.scrollBy({top: 0, left: -this.diff, behavior: 'smooth'})
 		}
 		e.preventDefault()
 	}
 
+	activateIndicator(index) {
+		let indicators = Array.from(document.querySelectorAll((`#${this.hash} .indicators .indicator`)))
+		indicators.forEach((indicator, i) => {
+			indicator.style.backgroundColor = ''
+			if (index === i) indicator.style.backgroundColor = '#000000aa'
+		})
+	}
+
 	swipeEnd(e) {
-		this.swiping = false
-		if (e.touches) { // mobile (touchscreen)
-			if (e.pageX < this.startX) {
-				this.scrollSlide('left')
-			} else {
-				this.scrollSlide('right')
-			}
-		} else { // desktop (mouse)
-			if (e.pageX < this.startX) {
-				this.scrollSlide('left')
-			} else {
-				this.scrollSlide('right')
-			}
+		const closest = (n, m) => {
+			// round n to closest factor of m
+			// get the quotient
+			let resto = n % m
+			// return rounded down or up based on what is closer
+			return resto <= m / 2 ? (n - resto) : n + m - resto
 		}
-		this.autoScroll()
+
+		this.sliding = false
+		let slidePosition = closest(this.slider.scrollLeft, this.width)
+		this.scrollTo(slidePosition)
+
+		this.activateIndicator(slidePosition/this.width)
+
+		if (this.diff === 0) return false
+		
+
+		let images = this.slider.children
+
+		if (slidePosition === 0) {
+			this.slider.insertBefore(images[images.length-1], images[0])
+			this.scrollTo(this.width, true)
+		}
+
+		if (slidePosition === this.slider.scrollLeftMax) {
+			this.slider.insertBefore(images[0], undefined)
+			this.slider.scrollBy({left: -this.width})
+		}
+	}
+
+
+	swipeLeave(e) {
+		if (this.sliding) {
+			this.swipeEnd(e)
+		}
 	}
 
 	addEvents() {
-		this.startX = undefined
+		this.slider.ondragstart = () => false
 
-		let slider = document.getElementById(this.hash)
-		slider.ondragstart = () => false
-
-		slider.onmousedown = this.swipeStart.bind(this)
-		slider.onmousemove = this.swipeMove.bind(this)
-		slider.onmouseup = this.swipeEnd.bind(this)
+		this.slider.onmousedown = this.swipeStart.bind(this)
+		this.slider.ontouchstart = this.swipeStart.bind(this)
 		
-		slider.ontouchstart = this.swipeStart.bind(this)
-		slider.ontouchmove = this.swipeMove.bind(this)
-		slider.ontouchend = this.swipeEnd.bind(this)
+		this.slider.onmousemove = this.swipeMove.bind(this)
+		this.slider.ontouchmove = this.swipeMove.bind(this)
+		
+		this.slider.ontouchend = this.swipeEnd.bind(this)
+		this.slider.onmouseup = this.swipeLeave.bind(this)
 
+		this.slider.onmouseleave = this.swipeLeave.bind(this)
+
+		let indicators = Array.from(document.querySelectorAll((`#${this.hash} .indicators .indicator`)))
+		indicators.forEach((indicator, i) => {
+			indicator.onclick = () => {
+				this.scrollTo(i * this.width)
+				this.activateIndicator(i)
+			}
+		})
+
+		this.activateIndicator(0)
+	}
+	
+	renderImages() {
+		return this.images.map(img => img.outerHTML).join('')
+	}
+	
+	renderIndicators() {
+		let indicators = ''
+		for (let i = 0; i < this.slidesCount; i++) {
+			indicators += `<button style="width: ${100/this.slidesCount}%" class="indicator">${i+1}</button>`
+		}
+		return indicators 
 	}
 
 	render() {
-		this.autoScroll()
-		return `<div style="width: ${this.width}px; height: ${this.height}px" class="slider-container" id="${this.hash}">
-			${this.loadImages().map(path => `<img draggable="false" src="${path}">`).join('')}
+		return `<div class="slider-wrap" id="${this.hash}" style="width: ${this.width}px; height: ${this.height}px">
+			<div style="width: ${this.width}px; height: ${this.height}px" class="slider-container">
+				${this.renderImages()}
+			</div>
+			<div class="indicators">
+				${this.renderIndicators()}
+			</div>
 		</div>`
 	}
 }
 
-let slider = new Slider()
-document.getElementById('root').innerHTML += slider.render()
-slider.addEvents()
+addEventListener("DOMContentLoaded", function(event) {
+	Array.from(document.querySelectorAll('.slider')).forEach(slider => {
+		new Slider(slider)
+	})
+  })

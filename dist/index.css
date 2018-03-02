@@ -1,10 +1,6 @@
 * {
-	margin: 0;
+	margin: 0 auto;
 	padding: 0;
-}
-
-body {
-	background-color: #f0f0f0;
 }
 
 .slider-container {
@@ -13,14 +9,23 @@ body {
 	flex-direction: row;
 	overflow: hidden;
 	border: 1px solid #000;
+	margin-top: 50px;
 }
 
 .slider-container > div {
 	overflow-x: auto;
 }
 
-.slider-container > img {
+.slider-container img {
 	-moz-user-select: none;
 	-webkit-user-select: none;
 	user-select: none;
+}
+
+.indicators {
+	text-align: center;
+}
+
+.indicator {
+	background-color: transparent;
 }
