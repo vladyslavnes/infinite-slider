@@ -27,11 +27,23 @@ class Slider {
   }
 
   scrollTo (amount, instantly = false) {
-    if (instantly) {
-      this.slider.scrollTo({top: 0, left: amount})
-    } else {
-      this.slider.scrollTo({top: 0, left: amount, behavior: 'smooth'})
+    const closest = (n, m) => {
+      // round n to closest factor of m
+      // get the quotient
+      const q = n % m
+      // return number rounded down or up based on what is closer
+      return q <= m / 2 ? (n - q) : n + m - q
     }
+
+    const slidePosition = closest(amount, this.width)
+    
+    if (instantly) {
+      this.slider.scrollTo({top: 0, left: slidePosition})
+    } else {
+      this.slider.scrollTo({top: 0, left: slidePosition, behavior: 'smooth'})
+    }
+
+    return slidePosition
   }
 
   swipeStart (e) {
@@ -56,23 +68,28 @@ class Slider {
       if (index === i) indicator.style.backgroundColor = '#000000aa'
     })
   }
-
+  
   swipeEnd (e) {
     const closest = (n, m) => {
       // round n to closest factor of m
       // get the quotient
-      let resto = n % m
-      // return rounded down or up based on what is closer
-      return resto <= m / 2 ? (n - resto) : n + m - resto
+      const q = n*2 % m
+      // return number rounded down or up based on what is closer
+      return q <= m / 2 ? (n - q) : n + m - q
     }
 
     this.sliding = false
-    let slidePosition = closest(this.slider.scrollLeft, this.width)
-    this.scrollTo(slidePosition)
 
+    // wherever user ended scrolling, force scroll to closest slide
+    const slidePosition = this.scrollTo(this.slider.scrollLeft, this.width)
+    // as we already have perfect slide position, we can know the current slide
     this.activateIndicator(slidePosition / this.width)
 
-    if (this.diff === 0) return false
+    // if user clicked (no drag)
+    if (this.diff === 0) {
+      this.clickImage(e)
+      return false
+    }
 
     let images = this.slider.children
 
@@ -94,13 +111,11 @@ class Slider {
   }
 
   clickImage (e) {
-    let mouseX = e.touches ? e.touches[0].clientX : e.clientX
-    console.log(mouseX - (window.innerWidth/2 - this.slider.clientWidth))
-  	if (e.clientX) {
-
-  	} else {
-
-  	}
+    const mouseX = e.touches ? e.touches[0].clientX : e.clientX
+    // < 0 -> -1 | 0 -> 0 | > 0 -> 1
+    const direction = Math.sign(e.clientX - window.innerWidth/2)
+    // -1 -> left | 0 -> stay at place | 1 -> right
+    this.scrollTo(this.slider.scrollLeft + (direction * this.width))
   }
 
   addEvents () {
@@ -117,7 +132,6 @@ class Slider {
 
     this.slider.onmouseleave = this.swipeLeave.bind(this)
 
-    this.slider.onclick = this.clickImage.bind(this)
 
     let indicators = Array.from(document.querySelectorAll((`#${this.hash} .indicators .indicator`)))
     indicators.forEach((indicator, i) => {
